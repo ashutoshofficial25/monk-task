@@ -15,8 +15,6 @@ import axiosInstance from "../utils/axios";
 import { IProduct, ISelectedProduct, IVariant } from "../interfaces/product";
 import AddProductForm from "../components/AddProdcutForm";
 
-const API_KEY = "72njgfa948d9aS7gs5";
-
 interface ISelect {
   id: number;
   children: number[];
@@ -32,6 +30,8 @@ export default function AddProduct() {
   const [debounceSearch, setDebounceSearch] = useState<string>("");
 
   const [products, setProducts] = useState<IProduct[]>([]);
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [selectedProduct, setSelectedProduct] = useState<ISelectedProduct[]>(
     []
@@ -251,22 +251,21 @@ export default function AddProduct() {
       try {
         let params = {
           page: page,
-          limit: 10,
+          limit: page * 10,
           search: debounceSearch,
         };
-        const res = await axiosInstance.get("/products/search", {
+        setIsLoading(true);
+        const res = await axiosInstance.get("/products", {
           params,
-          headers: {
-            "x-api-key": API_KEY,
-          },
         });
-
+        setIsLoading(false);
         if (res.data) {
-          setProducts(res.data);
+          setProducts(res.data?.data);
         } else {
           setProducts([]);
         }
       } catch (error) {
+        setIsLoading(false);
         console.error("log: er", error);
       }
     };
@@ -522,6 +521,7 @@ export default function AddProduct() {
                 )
           }
           selected={selected}
+          isLoading={isLoading}
         />
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { CiSearch } from "react-icons/ci";
 import Dialog from "./Dialog";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef } from "react";
 import { IProduct, IVariant } from "../interfaces/product";
 import Checkbox from "./Checkbox";
 
@@ -12,6 +12,7 @@ interface IProps {
   setPage: Dispatch<SetStateAction<number>>;
   products: IProduct[];
   selected: ISelect[];
+  isLoading: boolean;
   onAddProduct: VoidFunction;
   onParentSelect: (productId: number, variantIds: number[]) => void;
   onChildSelect: (productId: number, variantId: number) => void;
@@ -30,16 +31,42 @@ export default function AddProductForm({
   setSearch,
   setPage,
   selected,
+  isLoading,
   onAddProduct,
   onChildSelect,
   onParentSelect,
 }: IProps) {
+  const observer = useRef<IntersectionObserver>();
+
+  const lastProductRef = useRef<HTMLDivElement>(null);
+
   const isParentSelected = (productId: number) => {
     const checked = selected.find((el) => el.id === productId);
 
     if (checked) return true;
     else return false;
   };
+
+  function loadMore() {
+    console.log("log: load", products.length);
+    setPage((prev) => prev + 1);
+  }
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const handleObserver = (entries: any) => {
+      const [entry] = entries;
+      if (entry.isIntersecting) {
+        loadMore();
+      }
+    };
+
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(handleObserver);
+    if (lastProductRef.current)
+      observer.current.observe(lastProductRef.current);
+  }, [isLoading]);
 
   const isChildSelected = (productId: number, variantId: number) => {
     const checked = selected.find((el) => el.id === productId);
@@ -76,7 +103,10 @@ export default function AddProductForm({
 
         <div className="h-[480px] overflow-y-scroll">
           {products?.map((product, index) => (
-            <div>
+            <div
+              key={product.id}
+              ref={index === products.length - 1 ? lastProductRef : null}
+            >
               <div className="py-2 px-3 border-t border-gray-400 flex gap-2 items-center">
                 <Checkbox
                   checked={isParentSelected(product.id)}
@@ -118,6 +148,14 @@ export default function AddProductForm({
               ))}
             </div>
           ))}
+          {isLoading && (
+            <div>
+              {" "}
+              <p className="text-center text-primary text-bold">
+                Loading...
+              </p>{" "}
+            </div>
+          )}
         </div>
 
         <div className="py-2 px-4 flex justify-between items-center border-t">
