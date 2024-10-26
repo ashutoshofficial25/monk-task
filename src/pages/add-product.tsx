@@ -252,7 +252,7 @@ export default function AddProduct() {
       try {
         let params = {
           page: page,
-          limit: page * 10,
+          limit: 10,
           search: debounceSearch,
         };
         setIsLoading(true);

@@ -47,6 +47,8 @@ export default function AddProductForm({
     else return false;
   };
 
+  console.log("log: length", products.length);
+
   function loadMore() {
     console.log("log: load", products.length);
     setPage((prev) => prev + 1);
