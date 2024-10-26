@@ -19,6 +19,7 @@ interface ISelect {
   id: number;
   children: number[];
 }
+const API_KEY = "72njgfa948d9aS7gs5";
 
 export default function AddProduct() {
   const [open, setOpen] = useState<boolean>(false);
@@ -255,12 +256,15 @@ export default function AddProduct() {
           search: debounceSearch,
         };
         setIsLoading(true);
-        const res = await axiosInstance.get("/products", {
+        const res = await axiosInstance.get("/products/search", {
           params,
+          headers: {
+            "x-api-key": API_KEY,
+          },
         });
         setIsLoading(false);
         if (res.data) {
-          setProducts(res.data?.data);
+          setProducts(res.data);
         } else {
           setProducts([]);
         }
