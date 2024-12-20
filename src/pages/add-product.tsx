@@ -252,7 +252,6 @@ export default function AddProduct() {
       try {
         let params = {
           page: page,
-          limit: 10,
           search: debounceSearch,
         };
         setIsLoading(true);
@@ -265,8 +264,6 @@ export default function AddProduct() {
         setIsLoading(false);
         if (res.data) {
           setProducts(res.data);
-        } else {
-          setProducts([]);
         }
       } catch (error) {
         setIsLoading(false);
@@ -512,7 +509,6 @@ export default function AddProduct() {
           onClose={handleClose}
           search={search}
           setSearch={setSearch}
-          setPage={setPage}
           onAddProduct={editId ? handleEditProduct : handleAddProduct}
           onParentSelect={handleParentSelect}
           onChildSelect={handleChildSelect}

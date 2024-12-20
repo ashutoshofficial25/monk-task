@@ -1,15 +1,25 @@
 import { CiSearch } from "react-icons/ci";
 import Dialog from "./Dialog";
-import { Dispatch, SetStateAction, useEffect, useRef } from "react";
+import React, {
+  Dispatch,
+  memo,
+  SetStateAction,
+  useEffect,
+  useRef,
+} from "react";
 import { IProduct, IVariant } from "../interfaces/product";
 import Checkbox from "./Checkbox";
+import {
+  areEqual,
+  FixedSizeList as List,
+  ListChildComponentProps,
+} from "react-window";
 
 interface IProps {
   open: boolean;
   onClose: VoidFunction;
   search: string;
   setSearch: Dispatch<SetStateAction<string>>;
-  setPage: Dispatch<SetStateAction<number>>;
   products: IProduct[];
   selected: ISelect[];
   isLoading: boolean;
@@ -29,60 +39,12 @@ export default function AddProductForm({
   products,
   search,
   setSearch,
-  setPage,
   selected,
   isLoading,
   onAddProduct,
   onChildSelect,
   onParentSelect,
 }: IProps) {
-  const observer = useRef<IntersectionObserver>();
-
-  const lastProductRef = useRef<HTMLDivElement>(null);
-
-  const isParentSelected = (productId: number) => {
-    const checked = selected.find((el) => el.id === productId);
-
-    if (checked) return true;
-    else return false;
-  };
-
-  console.log("log: length", products.length);
-
-  function loadMore() {
-    console.log("log: load", products.length);
-    setPage((prev) => prev + 1);
-  }
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const handleObserver = (entries: any) => {
-      const [entry] = entries;
-      if (entry.isIntersecting) {
-        loadMore();
-      }
-    };
-
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(handleObserver);
-    if (lastProductRef.current)
-      observer.current.observe(lastProductRef.current);
-  }, [isLoading]);
-
-  const isChildSelected = (productId: number, variantId: number) => {
-    const checked = selected.find((el) => el.id === productId);
-
-    if (!checked) return false;
-
-    const child = checked.children.find((el) => el === variantId);
-
-    if (child === 0) return true;
-
-    if (child) return true;
-    else return false;
-  };
-
   return (
     <div>
       <Dialog open={open} title="Add Product" onClose={onClose}>
@@ -103,53 +65,18 @@ export default function AddProductForm({
           </div>
         )}
 
-        <div className="h-[480px] overflow-y-scroll">
-          {products?.map((product, index) => (
-            <div
-              key={product.id}
-              ref={index === products.length - 1 ? lastProductRef : null}
-            >
-              <div className="py-2 px-3 border-t border-gray-400 flex gap-2 items-center">
-                <Checkbox
-                  checked={isParentSelected(product.id)}
-                  onClick={() =>
-                    onParentSelect(
-                      product.id,
-                      product.variants?.map((el) => el.id)
-                    )
-                  }
-                />
+        <div>
+          <List
+            height={480}
+            itemCount={products.length}
+            itemSize={50}
+            width={"100%"}
+            overscanCount={100}
+            itemData={{ products, selected, onParentSelect, onChildSelect }}
+          >
+            {Row}
+          </List>
 
-                <img
-                  src={product?.image?.src}
-                  className="h-10 w-10"
-                  alt="img"
-                />
-
-                <p className="text-md">{product.title}</p>
-              </div>
-
-              {/* children */}
-              {product?.variants?.map((variant: IVariant, childIndex) => (
-                <div key={variant.id}>
-                  <div className="py-4 px-8 border-t border-gray-400 flex gap-2 items-center justify-between text-text">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={isChildSelected(product.id, variant?.id)}
-                        onClick={() => onChildSelect(product.id, variant?.id)}
-                      />
-                      <p className="text-md">{variant.title}</p>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      <div>{variant?.inventory_quantity || 0} available</div>
-                      <div>${variant.price}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
           {isLoading && (
             <div>
               {" "}
@@ -182,3 +109,104 @@ export default function AddProductForm({
     </div>
   );
 }
+
+const Row: React.FC<ListChildComponentProps> = memo(
+  ({ data, style, index }) => {
+    const { products, selected, onParentSelect, onChildSelect } = data;
+
+    const product: IProduct = products[index];
+
+    const isParentSelected = (productId: number) => {
+      const checked = selected.find((el: any) => el.id === productId);
+
+      if (checked) return true;
+      else return false;
+    };
+
+    const isChildSelected = (productId: number, variantId: number) => {
+      const checked = selected.find((el: any) => el.id === productId);
+
+      if (!checked) return false;
+
+      const child = checked.children.find((el: any) => el === variantId);
+
+      if (child === 0) return true;
+
+      if (child) return true;
+      else return false;
+    };
+
+    return (
+      <div key={product.id}>
+        <div className="py-2 px-3 border-t border-gray-400 flex gap-2 items-center">
+          <Checkbox
+            checked={isParentSelected(product.id)}
+            onClick={() =>
+              onParentSelect(
+                product.id,
+                product.variants?.map((el) => el.id)
+              )
+            }
+          />
+
+          {/* <img
+            src={product?.image?.src}
+            className="h-10 w-10"
+            alt="img"
+            loading="lazy"
+          /> */}
+
+          <p className="text-md">{product.title}</p>
+        </div>
+
+        {/* children */}
+        {product?.variants?.map((variant: IVariant, _childIndex) => (
+          <div key={variant.id}>
+            <div className="py-4 px-8 border-t border-gray-400 flex gap-2 items-center justify-between text-text">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isChildSelected(product.id, variant?.id)}
+                  onClick={() => onChildSelect(product.id, variant?.id)}
+                />
+                <p className="text-md">{variant.title}</p>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div>{variant?.inventory_quantity || 0} available</div>
+                <div>${variant.price}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  },
+  areEqual
+);
+
+const ChildRow: React.FC<ListChildComponentProps> = memo(
+  ({ data, index, style }) => {
+    const { variants, isChildSelected, onChildSelect, productId } = data;
+
+    const variant = variants[index];
+
+    return (
+      <div key={variant.id}>
+        <div className="py-4 px-8 border-t border-gray-400 flex gap-2 items-center justify-between text-text">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={isChildSelected(productId, variant?.id)}
+              onClick={() => onChildSelect(productId, variant?.id)}
+            />
+            <p className="text-md">{variant.title}</p>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div>{variant?.inventory_quantity || 0} available</div>
+            <div>${variant.price}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
